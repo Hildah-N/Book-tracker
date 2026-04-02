@@ -560,12 +560,21 @@ def add_book():
     if request.method == 'POST':
         try:
             session = Session()
+            date_input = request.form.get('date_read', '').strip()
+            if date_input:
+                try:
+                    parsed = datetime.datetime.strptime(date_input, "%Y-%m")
+                    date_read_val = parsed.strftime("%B %Y")
+                except ValueError:
+                    date_read_val = date_input
+            else:
+                date_read_val = datetime.datetime.now().strftime("%B %Y")
             new_book = Book(
                 title=request.form['title'].strip(),
                 author=request.form['author'].strip(),
                 rating=int(request.form['rating']),
                 pages=int(request.form['pages']),
-                date_read=datetime.datetime.now().strftime("%B %Y")
+                date_read=date_read_val
             )
             session.add(new_book)
             session.commit()
@@ -615,6 +624,11 @@ def add_book():
                             <option value="1">★☆☆☆☆ — Disappointing</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Date Read</label>
+                        <input class="form-input" type="month" name="date_read">
+                        <small style="color:var(--ink-muted);font-size:0.75rem;margin-top:4px;display:block">Leave blank to use today&#39;s month</small>
+                    </div>
                     <div style="display:flex;gap:12px;margin-top:8px">
                         <button type="submit" class="btn btn-primary btn-full">
                             <i class="fas fa-check"></i> Save Book
@@ -645,6 +659,13 @@ def edit_book(book_id):
             book.author = request.form['author'].strip()
             book.rating = int(request.form['rating'])
             book.pages = int(request.form['pages'])
+            date_input = request.form.get('date_read', '').strip()
+            if date_input:
+                try:
+                    parsed = datetime.datetime.strptime(date_input, "%Y-%m")
+                    book.date_read = parsed.strftime("%B %Y")
+                except ValueError:
+                    book.date_read = date_input
             book.updated_at = datetime.datetime.now()
             session.commit()
             session.close()
@@ -658,6 +679,11 @@ def edit_book(book_id):
     title_val = book.title
     author_val = book.author
     pages_val = book.pages
+    # Convert stored "Month YYYY" back to "YYYY-MM" for the month input
+    try:
+        date_read_input_val = datetime.datetime.strptime(book.date_read, "%B %Y").strftime("%Y-%m") if book.date_read else ""
+    except (ValueError, TypeError):
+        date_read_input_val = ""
     session.close()
 
     return render_template_string(f"""
@@ -700,6 +726,11 @@ def edit_book(book_id):
                             <option value="2" {sel(2)}>★★☆☆☆ — Average</option>
                             <option value="1" {sel(1)}>★☆☆☆☆ — Disappointing</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date Read</label>
+                        <input class="form-input" type="month" name="date_read" value="{date_read_input_val}">
+                        <small style="color:var(--ink-muted);font-size:0.75rem;margin-top:4px;display:block">Leave blank to keep existing date</small>
                     </div>
                     <div style="display:flex;gap:12px;margin-top:8px">
                         <button type="submit" class="btn btn-primary btn-full">
